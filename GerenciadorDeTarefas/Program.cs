@@ -1,12 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using GerenciadorDeTarefas.Data;
+using GerenciadorDeTarefas.Service;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<GerenciadorDeTarefasContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("GerenciadorDeTarefasContext") ?? throw new InvalidOperationException("Connection string 'GerenciadorDeTarefasContext' not found.")));
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<TarefaService>();
 
 var app = builder.Build();
 

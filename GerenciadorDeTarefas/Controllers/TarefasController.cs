@@ -7,151 +7,110 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using GerenciadorDeTarefas.Data;
 using GerenciadorDeTarefas.Models;
+using GerenciadorDeTarefas.Service;
+using GerenciadorDeTarefas.Models.Enum;
 
 namespace GerenciadorDeTarefas.Controllers
 {
     public class TarefasController : Controller
     {
-        private readonly GerenciadorDeTarefasContext _context;
+        private readonly TarefaService ContextService;
 
-        public TarefasController(GerenciadorDeTarefasContext context)
+        public TarefasController(TarefaService contextService)
         {
-            _context = context;
+            ContextService = contextService;
         }
 
-        // GET: Tarefas
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Tarefa.ToListAsync());
+            var list = await ContextService.TodasTarefas();
+            return View(list);
         }
-
-        // GET: Tarefas/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Create()
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var tarefa = await _context.Tarefa
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (tarefa == null)
-            {
-                return NotFound();
-            }
-
-            return View(tarefa);
-        }
-
-        // GET: Tarefas/Create
-        public IActionResult Create()
-        {
+            ViewBag.StatusList = new SelectList(Enum.GetValues(typeof(EnumStatusTarefa)));
             return View();
         }
-
-        // POST: Tarefas/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Titulo,Descricao,Data,Status")] Tarefa tarefa)
+        public async Task<IActionResult> Create(Tarefa tarefa)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                _context.Add(tarefa);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return View(tarefa);
             }
-            return View(tarefa);
+            await ContextService.InseriTarefa(tarefa);
+            return RedirectToAction(nameof(Index));
         }
-
-        // GET: Tarefas/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
             {
                 return NotFound();
             }
-
-            var tarefa = await _context.Tarefa.FindAsync(id);
-            if (tarefa == null)
+            var obj = await ContextService.BuscaId(id.Value);
+            if (obj == null)
             {
                 return NotFound();
             }
-            return View(tarefa);
+            ViewBag.StatusList = new SelectList(Enum.GetValues(typeof(EnumStatusTarefa)));
+            return View(obj);
         }
-
-        // POST: Tarefas/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Titulo,Descricao,Data,Status")] Tarefa tarefa)
+        public async Task<IActionResult> Edit(int? id, Tarefa tarefa)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(tarefa);
+            }
             if (id != tarefa.Id)
             {
-                return NotFound();
+                return BadRequest();
             }
-
-            if (ModelState.IsValid)
+            try
             {
-                try
-                {
-                    _context.Update(tarefa);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TarefaExists(tarefa.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
+                await ContextService.Atualizar(tarefa);
                 return RedirectToAction(nameof(Index));
             }
-            return View(tarefa);
-        }
+            catch (Exception e)
+            {
 
-        // GET: Tarefas/Delete/5
+                throw new Exception(e.Message);
+            }
+        }
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
             {
                 return NotFound();
             }
-
-            var tarefa = await _context.Tarefa
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (tarefa == null)
+            var obj = await ContextService.BuscaId(id.Value);
+            if (obj == null)
             {
                 return NotFound();
             }
-
-            return View(tarefa);
+            return View(obj);
         }
-
-        // POST: Tarefas/Delete/5
-        [HttpPost, ActionName("Delete")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var tarefa = await _context.Tarefa.FindAsync(id);
-            if (tarefa != null)
-            {
-                _context.Tarefa.Remove(tarefa);
-            }
-
-            await _context.SaveChangesAsync();
+            await ContextService.Remover(id);
             return RedirectToAction(nameof(Index));
         }
-
-        private bool TarefaExists(int id)
+        public async Task<IActionResult> Details(int? id)
         {
-            return _context.Tarefa.Any(e => e.Id == id);
+            if (id == null)
+            {
+                return NotFound();
+            }
+            var obj = await ContextService.BuscaId(id.Value);
+            if (id == null)
+            {
+                return NotFound();
+            }
+            return View(obj);
         }
     }
 }
